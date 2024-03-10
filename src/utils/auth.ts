@@ -11,7 +11,9 @@ import { getTwoFactorConfirmationByUserId } from '@/data/two-factor-confirmation
 
 declare module 'next-auth' {
     interface Session {
-        user: User & DefaultSession['user']
+        user: {
+            token: string | null
+        } & User & DefaultSession['user']
     }
 }
 
@@ -43,8 +45,12 @@ export const {
 
             return true
         },
-        async jwt({ token }) {
+        async jwt({ token, account }) {
             if(!token.sub) return token
+
+            if (account && account.access_token) {
+                token.accessToken = account.access_token // <-- adding the access_token here
+            }
 
             const existingUser = await getUserById(token.sub)
             if(!existingUser) return token
@@ -53,6 +59,17 @@ export const {
             return token
         },
         async session({ token, session }) {
+            const getToken = await prisma.account.findFirst({
+                where: {
+                    userId: session.user.id
+                }
+            })
+
+
+            if(getToken && session.user) {
+                session.user.token = getToken.access_token
+            }
+
             if(token.sub && session.user) {
                 session.user.id = token.sub
             }
