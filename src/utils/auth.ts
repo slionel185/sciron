@@ -48,7 +48,8 @@ export const {
         async jwt({ token, account }) {
             if(!token.sub) return token
 
-            if (account && account.access_token) {
+            if (account && account.access_token && account.refresh_token) {
+                token.refreshToken = account.refresh_token
                 token.accessToken = account.access_token // <-- adding the access_token here
             }
 
